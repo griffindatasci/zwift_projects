@@ -36,22 +36,59 @@ times <- rbindlist(lapply(source_files, function(file){
 test_data <- times[test_log, on="strava_id"][!is.na(time)]
 
 
+# Get average, range (investigate if range>2) for each frame/wheel
+averages <- 
+    test_data[, 
+              .("time"=mean(time), "laps"=.N, "range"=diff(range(time))), 
+              by=.(test_id, frame, wheel, power, segment)]
 
-averages <- test_data[, .("time"=mean(time), "laps"=.N, "range"=diff(range(time))), by=.(test_id, frame, wheel, power, segment)]
-averages[, speed:=segments[averages, on="segment", km]/time*3600]
+if(averages[range>2, .N]>0){
+    averages[range>2]
+    stop("Check tests - large variation in above cases")
+} 
 
-averages[segment=="Sand and Sequoias", 
-         ggplot(.SD, mapping=aes(x=power, y=time, color=frame, shape=wheel)) + 
-             geom_line()]
+# Baselines
+baselines <- 
+    averages[frame=="Zwift Carbon" & wheel=="Zwift 32mm Carbon",
+             .(segment, power, "time_base"=time)]
+
+# Get effect for each item
+averages <- baselines[averages, on=c("segment", "power")]
+averages[, time_effect:=time-time_base]
+
+# Create each combination of item, then add frame and wheel effect for bike effect
+bikes <- 
+    rbindlist(lapply(c(300,150), function(power){
+        rbindlist(lapply(averages[, unique(frame)], function(frame){
+            rbindlist(lapply(averages[, unique(wheel)], function(wheel){
+                rbindlist(lapply(averages[, unique(segment)], function(segment){
+                    data.table(frame, wheel, power, segment)
+                }))
+            }))
+        }))
+    }))
+
+bikes <- averages[wheel=="Zwift 32mm Carbon", .(frame, power, segment, "frame_effect"=time_effect)][bikes, on=c("frame", "power", "segment")]
+bikes <- averages[frame=="Zwift Carbon", .(wheel, power, segment, "wheel_effect"=time_effect)][bikes, on=c("wheel", "power", "segment")]
+bikes <- baselines[bikes, on=c("segment", "power")]
+bikes <- bikes[, .(frame, wheel, power, segment, "time"=wheel_effect+frame_effect+time_base)]
+bikes <- bikes[!is.na(time)]
 
 
-averages[segment=="Sand and Sequoias", 
-         ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) + 
-             geom_line()]
+bikes[, speed:=segments[bikes, on="segment", km]/time*3600]
 
 
-averages[segment=="Titans Grove KOM", 
-         ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) + 
-             geom_line()]
 
-averages[segment=="Titans Grove KOM"][order(speed)]
+bikes[segment=="Titans Grove KOM" & 
+          frame %in% c("Specialized Venge S-Works", "Specialized Aethos S-Works", "Zwift Carbon") &
+          wheel %in% c("DT Swiss Disc", "Zwift 32mm Carbon"),
+      .(frame, wheel, speed=speed-min(speed)), by=power][frame!="Zwift Carbon" & wheel!="Zwift 32mm Carbon",
+      ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) +
+          geom_line() +
+          geom_point() +
+          labs(x="Power (W)", 
+               y="Titans Grove KOM speed advantage (km/h)", 
+               color="Frame",
+               shape="Wheel") +
+          theme_classic()]
+
