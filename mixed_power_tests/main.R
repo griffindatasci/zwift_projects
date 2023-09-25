@@ -40,7 +40,7 @@ test_data <- times[test_log, on="strava_id"][!is.na(time)]
 averages <- 
     test_data[, 
               .("time"=mean(time), "laps"=.N, "range"=diff(range(time))), 
-              by=.(test_id, frame, wheel, power, segment)]
+              by=.(frame, wheel, power, segment)]
 
 if(averages[range>2, .N]>0){
     averages[range>2]
@@ -58,7 +58,7 @@ averages[, time_effect:=time-time_base]
 
 # Create each combination of item, then add frame and wheel effect for bike effect
 bikes <- 
-    rbindlist(lapply(c(300,150), function(power){
+    rbindlist(lapply(averages[, unique(power)], function(power){
         rbindlist(lapply(averages[, unique(frame)], function(frame){
             rbindlist(lapply(averages[, unique(wheel)], function(wheel){
                 rbindlist(lapply(averages[, unique(segment)], function(segment){
@@ -79,9 +79,7 @@ bikes[, speed:=segments[bikes, on="segment", km]/time*3600]
 
 
 
-bikes[segment=="Titans Grove KOM", #& 
-          #frame %in% c("Specialized Venge S-Works", "Specialized Aethos S-Works", "Zwift Carbon") &
-          #wheel %in% c("DT Swiss Disc", "Zwift 32mm Carbon"),
+bikes[segment=="Titans Grove KOM" & wheel=="Zwift 32mm Carbon", 
       .(frame, wheel, speed=speed-min(speed)), by=power][,
       ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) +
           geom_line() +
