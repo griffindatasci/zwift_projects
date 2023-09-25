@@ -79,10 +79,10 @@ bikes[, speed:=segments[bikes, on="segment", km]/time*3600]
 
 
 
-bikes[segment=="Titans Grove KOM" & 
-          frame %in% c("Specialized Venge S-Works", "Specialized Aethos S-Works", "Zwift Carbon") &
-          wheel %in% c("DT Swiss Disc", "Zwift 32mm Carbon"),
-      .(frame, wheel, speed=speed-min(speed)), by=power][frame!="Zwift Carbon" & wheel!="Zwift 32mm Carbon",
+bikes[segment=="Titans Grove KOM", #& 
+          #frame %in% c("Specialized Venge S-Works", "Specialized Aethos S-Works", "Zwift Carbon") &
+          #wheel %in% c("DT Swiss Disc", "Zwift 32mm Carbon"),
+      .(frame, wheel, speed=speed-min(speed)), by=power][,
       ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) +
           geom_line() +
           geom_point() +
