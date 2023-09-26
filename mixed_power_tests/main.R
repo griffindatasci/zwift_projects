@@ -22,7 +22,7 @@ times <- rbindlist(lapply(source_files, function(file){
     
     seg_snippets <- tstrsplit(tstrsplit(as.character(html_doc), "pageView.segmentEfforts()")[2], "start_index")
     
-    focal_snippets <- seg_snippets[grepl("desert flat section|sand and sequoias|titans grove, northbound|titans grove kom", seg_snippets, ignore.case=TRUE)]
+    focal_snippets <- seg_snippets[grepl("Epic KOM|Radio Tower Climb|Desert Flat Section|Sand and Sequoias|Titans Grove, Northbound|Titans Grove KOM", seg_snippets, ignore.case=FALSE)]
     
     rbindlist(lapply(focal_snippets, function(snippet){
         segment <- tstrsplit(snippet, 'name\":\"|\",\"climb')[[2]]
@@ -81,12 +81,23 @@ bikes[, speed:=segments[bikes, on="segment", km]/time*3600]
 
 bikes[segment=="Titans Grove KOM" & wheel=="Zwift 32mm Carbon", 
       .(frame, wheel, speed=speed-min(speed)), by=power][,
-      ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) +
-          geom_line() +
-          geom_point() +
-          labs(x="Power (W)", 
-               y="Titans Grove KOM speed advantage (km/h)", 
-               color="Frame",
-               shape="Wheel") +
-          theme_classic()]
+                                                         ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) +
+                                                             geom_line() +
+                                                             geom_point() +
+                                                             labs(x="Power (W)", 
+                                                                  y="Titans Grove KOM speed advantage (km/h)", 
+                                                                  color="Frame",
+                                                                  shape="Wheel") +
+                                                             theme_classic()]
+
+bikes[segment=="Epic KOM" & wheel=="Zwift 32mm Carbon", 
+      .(frame, wheel, speed=speed-min(speed)), by=power][,
+                                                         ggplot(.SD, mapping=aes(x=power, y=speed, color=frame, shape=wheel)) +
+                                                             geom_line() +
+                                                             geom_point() +
+                                                             labs(x="Power (W)", 
+                                                                  y="Titans Grove KOM speed advantage (km/h)", 
+                                                                  color="Frame",
+                                                                  shape="Wheel") +
+                                                             theme_classic()]
 
